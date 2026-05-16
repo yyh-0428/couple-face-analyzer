@@ -233,7 +233,7 @@
 
     let img1=null,img2=null,modelsOk=false,expModelOk=false,ageModelOk=false,particleRaf=null;
 
-    const MODEL_URL='https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model';
+    const MODEL_URL='https://unpkg.com/@vladmandic/face-api@1.7.15/model';
 
     // ── 粒子爱心动画 ──────────────────────────────
     const particles=[],MAX_P=120;
@@ -311,15 +311,27 @@
             modelsOk=true;updBtn();
             statusBar.className='status-bar ok';statusBar.textContent='核心模型加载完成，可以开始分析';
             // 可选模型后台加载
-            statusBar.textContent='正在加载表情模型...';
-            loadOneModel(faceapi.nets.faceExpressionNet,'Expression',2).then(ok=>{expModelOk=ok;if(ok)console.log('Expression model loaded');else console.warn('Expression model FAILED')});
-            loadOneModel(faceapi.nets.ageGenderNet,'AgeGender',2).then(ok=>{ageModelOk=ok;if(ok)console.log('AgeGender model loaded');else console.warn('AgeGender model FAILED')});
-            setTimeout(()=>{
-                const extra=[];if(expModelOk)extra.push('表情');if(ageModelOk)extra.push('年龄性别');
+            statusBar.textContent='正在加载表情/年龄模型（可选）...';
+            Promise.all([
+                loadOneModel(faceapi.nets.faceExpressionNet,'Expression',2).then(ok=>{expModelOk=ok;return ok}),
+                loadOneModel(faceapi.nets.ageGenderNet,'AgeGender',2).then(ok=>{ageModelOk=ok;return ok})
+            ]).then(([exp,age])=>{
                 statusBar.className='status-bar ok';
-                statusBar.textContent='模型就绪'+(extra.length?'（含'+extra.join('、')+'）':'')+'，可以开始分析';
-                setTimeout(()=>{statusBar.textContent=''},3000);
-            },5000);
+                const parts=[];
+                if(exp)parts.push('表情');if(age)parts.push('年龄性别');
+                if(parts.length)statusBar.textContent='模型就绪（含'+parts.join('、')+'），可以开始分析';
+                else statusBar.innerHTML='可选模型加载失败 <button class="retry-link" id="retryOptional">重试表情模型</button>，不影响核心分析';
+                const retryBtn=$('retryOptional');
+                if(retryBtn)retryBtn.onclick=async()=>{
+                    statusBar.textContent='正在重试加载表情模型...';
+                    const ok=await loadOneModel(faceapi.nets.faceExpressionNet,'Expression',2);
+                    expModelOk=ok;
+                    statusBar.className=ok?'status-bar ok':'status-bar err';
+                    statusBar.textContent=ok?'表情模型加载成功':'表情模型加载失败，请检查网络或刷新页面';
+                    setTimeout(()=>{statusBar.textContent=''},4000);
+                };
+                setTimeout(()=>{if(statusBar.textContent.startsWith('模型就绪'))statusBar.textContent=''},4000);
+            });
         }catch(e){
             modelsOk=false;statusBar.className='status-bar err';
             statusBar.innerHTML='模型加载失败 <button class="retry-link" id="retryLink">重试</button>';

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>夫妻相分析仪</title>
-    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.js"></script>
     <style>
         :root {
             --bg: #f5f3ef; --bg-warm: #ece8e1; --card: rgba(255,253,250,0.88); --card-border: rgba(255,255,255,0.7);
@@ -233,7 +233,7 @@
 
     let img1=null,img2=null,modelsOk=false,expModelOk=false,ageModelOk=false,particleRaf=null;
 
-    const MODEL_URL='https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
+    const MODEL_URL='https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model';
 
     // ── 粒子爱心动画 ──────────────────────────────
     const particles=[],MAX_P=120;
@@ -312,8 +312,8 @@
             statusBar.className='status-bar ok';statusBar.textContent='核心模型加载完成，可以开始分析';
             // 可选模型后台加载
             statusBar.textContent='正在加载表情模型...';
-            loadOneModel(faceapi.nets.faceExpressionNet,'Expression',1).then(ok=>{expModelOk=ok;if(ok)console.log('Expression model loaded')});
-            loadOneModel(faceapi.nets.ageGenderNet,'AgeGender',1).then(ok=>{ageModelOk=ok;if(ok)console.log('AgeGender model loaded')});
+            loadOneModel(faceapi.nets.faceExpressionNet,'Expression',2).then(ok=>{expModelOk=ok;if(ok)console.log('Expression model loaded');else console.warn('Expression model FAILED')});
+            loadOneModel(faceapi.nets.ageGenderNet,'AgeGender',2).then(ok=>{ageModelOk=ok;if(ok)console.log('AgeGender model loaded');else console.warn('AgeGender model FAILED')});
             setTimeout(()=>{
                 const extra=[];if(expModelOk)extra.push('表情');if(ageModelOk)extra.push('年龄性别');
                 statusBar.className='status-bar ok';

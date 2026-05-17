@@ -400,13 +400,14 @@
         try{
             const opts=new faceapi.TinyFaceDetectorOptions({inputSize:512,scoreThreshold:0.5});
             let d1,d2;
-            try{
-                const c1=faceapi.detectSingleFace(img1,opts).withFaceLandmarks().withFaceDescriptor();
-                const c2=faceapi.detectSingleFace(img2,opts).withFaceLandmarks().withFaceDescriptor();
-                if(expModelOk){c1.withFaceExpressions();c2.withFaceExpressions()}
-                if(ageModelOk){c1.withAgeAndGender();c2.withAgeAndGender()}
-                [d1,d2]=await Promise.all([c1,c2]);
-            }catch(e){d1=await faceapi.detectSingleFace(img1,opts).withFaceLandmarks().withFaceDescriptor();d2=await faceapi.detectSingleFace(img2,opts).withFaceLandmarks().withFaceDescriptor()}
+            function buildChain(img){
+                let c=faceapi.detectSingleFace(img,opts).withFaceLandmarks().withFaceDescriptor();
+                if(expModelOk)c=c.withFaceExpressions();
+                if(ageModelOk)c=c.withAgeAndGender();
+                return c;
+            }
+            try{[d1,d2]=await Promise.all([buildChain(img1),buildChain(img2)])}
+            catch(e){d1=await faceapi.detectSingleFace(img1,opts).withFaceLandmarks().withFaceDescriptor();d2=await faceapi.detectSingleFace(img2,opts).withFaceLandmarks().withFaceDescriptor()}
             if(!d1)throw new Error('第一张照片未检测到人脸，请上传正面清晰照片');
             if(!d2)throw new Error('第二张照片未检测到人脸，请上传正面清晰照片');
             const dist=faceapi.euclideanDistance(d1.descriptor,d2.descriptor);

@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>夫妻相分析仪</title>
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.js"></script>
+    <style>
+        :root {
+            --bg: #f5f3ef; --bg-warm: #ece8e1; --card: rgba(255,253,250,0.88); --card-border: rgba(255,255,255,0.7);
+            --card-shadow: 0 30px 60px -15px rgba(30,25,20,0.18), 0 1px 3px rgba(30,25,20,0.06);
+            --ink: #1a1612; --ink-2: #4a4035; --ink-3: #8a7e6f; --ink-muted: #b5a99a;
+            --surface: #faf8f5; --surface-2: rgba(255,253,250,0.6); --border: rgba(180,170,155,0.25);
+            --accent: #a85c32; --accent-2: #c47340; --accent-soft: rgba(168,92,50,0.07); --accent-glow: rgba(168,92,50,0.12);
+            --rose: #b5546a; --rose-soft: rgba(181,84,106,0.07);
+            --green: #3a8a5c; --green-soft: rgba(58,138,92,0.1);
+            --input-bg: #fffdf9; --input-border: rgba(180,170,155,0.35);
+            --btn-bg: #1a1612; --btn-text: #faf8f5;
+            --tag-bg: rgba(168,92,50,0.06); --tag-text: #8b5a2e;
+            --error-bg: #fdf0ef; --error-text: #9e2b1f; --error-border: rgba(158,43,31,0.15);
+            --glass-shine: rgba(255,255,255,0.5);
+            --radar-grid: rgba(180,170,155,0.2); --radar-fill: rgba(168,92,50,0.08); --radar-stroke: #a85c32;
+            --gauge-track: #e8e3db;
+        }
+        [data-theme="dark"] {
+            --bg: #0f0e0c; --bg-warm: #1a1816; --card: rgba(26,24,22,0.92); --card-border: rgba(60,55,48,0.5);
+            --card-shadow: 0 30px 60px -15px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.2);
+            --ink: #f0ece6; --ink-2: #b5a99a; --ink-3: #7a6e5f; --ink-muted: #5a5045;
+            --surface: #1f1d1a; --surface-2: rgba(31,29,26,0.6); --border: rgba(80,72,62,0.3);
+            --accent: #d4a050; --accent-2: #e0b060; --accent-soft: rgba(212,160,80,0.1); --accent-glow: rgba(212,160,80,0.15);
+            --rose: #d4708a; --rose-soft: rgba(212,112,138,0.1);
+            --green: #4aac6e; --green-soft: rgba(74,172,110,0.12);
+            --input-bg: #161412; --input-border: rgba(80,72,62,0.4);
+            --btn-bg: #f0ece6; --btn-text: #1a1612;
+            --tag-bg: rgba(212,160,80,0.08); --tag-text: #d4a050;
+            --error-bg: rgba(158,43,31,0.12); --error-text: #f08080; --error-border: rgba(158,43,31,0.2);
+            --glass-shine: rgba(255,255,255,0.03);
+            --radar-grid: rgba(80,72,62,0.25); --radar-fill: rgba(212,160,80,0.1); --radar-stroke: #d4a050;
+            --gauge-track: #2a2723;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: 'SF Pro Display', -apple-system, 'Helvetica Neue', 'PingFang SC', 'Noto Sans SC', sans-serif; background: var(--bg); background-image: radial-gradient(ellipse 70% 50% at 30% 20%, rgba(168,92,50,0.04), transparent), radial-gradient(ellipse 60% 40% at 70% 80%, rgba(181,84,106,0.03), transparent); min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 24px 16px; color: var(--ink); -webkit-font-smoothing: antialiased; }
+        .card { max-width: 720px; width: 100%; background: var(--card); backdrop-filter: blur(20px) saturate(1.2); -webkit-backdrop-filter: blur(20px) saturate(1.2); border-radius: 32px; box-shadow: var(--card-shadow); padding: 36px 32px 28px; border: 1px solid var(--card-border); margin: 16px 0; position: relative; overflow: hidden; }
+        .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--glass-shine), transparent); }
+        .header { text-align: center; margin-bottom: 28px; }
+        .header-icon { width: 48px; height: 48px; background: var(--rose-soft); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px; animation: pulse 2s ease-in-out infinite; position: relative; }
+        .header-icon::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 1.5px solid var(--rose); opacity: 0.15; animation: ripple 2.5s ease-out infinite; }
+        @keyframes ripple { 0% { transform: scale(0.8); opacity: 0.3; } 100% { transform: scale(1.4); opacity: 0; } }
+        @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+        .header-icon svg { width: 24px; height: 24px; }
+        h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); margin-bottom: 6px; position: relative; display: inline-block; }
+        h1::after { content: ''; position: absolute; bottom: -2px; left: 10%; right: 10%; height: 2px; background: linear-gradient(90deg, transparent, var(--rose), transparent); border-radius: 1px; }
+        h1 .thin { font-weight: 300; color: var(--ink-2); }
+        .subtitle { font-size: 0.82rem; color: var(--ink-3); }
+        .divider { height: 1px; background: var(--border); margin: 20px 0; }
+        .theme-toggle { position: absolute; top: 16px; right: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 50%; width: 34px; height: 34px; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--ink-3); transition: all 0.2s; z-index: 2; }
+        .theme-toggle:hover { border-color: var(--ink-3); transform: scale(1.05); }
+        .status-bar { text-align: center; font-size: 0.82rem; color: var(--ink-3); margin-bottom: 16px; min-height: 20px; transition: all 0.3s; }
+        .status-bar.ok { color: #228b22; }
+        .status-bar.err { color: var(--error-text); }
+        .retry-link { background: none; border: none; color: var(--accent); font-size: 0.82rem; cursor: pointer; text-decoration: underline; margin-left: 4px; }
+        .upload-row { display: flex; gap: 16px; justify-content: center; margin-bottom: 20px; }
+        .upload-box { flex: 1; max-width: 300px; aspect-ratio: 3/4; border: 1.5px dashed var(--border); border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.25s; background: var(--surface-2); position: relative; overflow: hidden; }
+        .upload-box:hover { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+        .upload-box.has-image { border-style: solid; border-color: var(--border); background: var(--surface); }
+        .upload-box.drag-over { border-color: var(--accent); background: var(--accent-soft); }
+        .upload-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 18px; }
+        .upload-placeholder { text-align: center; color: var(--ink-3); padding: 20px; }
+        .upload-placeholder .up-icon { width: 40px; height: 40px; margin: 0 auto 12px; background: var(--accent-soft); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .upload-placeholder .up-icon svg { width: 20px; height: 20px; stroke: var(--accent); }
+        .upload-placeholder .up-label { font-size: 0.9rem; font-weight: 500; margin-bottom: 4px; color: var(--ink-2); }
+        .upload-placeholder .up-hint { font-size: 0.75rem; color: var(--ink-muted); }
+        .btn-primary { display: block; margin: 0 auto 16px; padding: 14px 48px; font-size: 0.95rem; font-weight: 600; color: var(--btn-text); background: var(--btn-bg); border: none; border-radius: 14px; cursor: pointer; transition: all 0.2s; letter-spacing: 0.01em; }
+        .btn-primary:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-primary.loading { opacity: 0.6; pointer-events: none; }
+        .btn-primary.loading::after { content: ''; display: inline-block; width: 14px; height: 14px; border: 2px solid transparent; border-top-color: currentColor; border-radius: 50%; animation: spin 0.5s linear infinite; margin-left: 8px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .results { display: none; }
+        .results.active { display: block; animation: resultsIn 0.6s ease both; }
+        @keyframes resultsIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .gauge-wrap { display: flex; flex-direction: column; align-items: center; margin: 4px 0 20px; padding: 16px; background: var(--surface); border-radius: 20px; border: 1px solid var(--border); }
+        .gauge-svg { width: 240px; height: 140px; }
+        .gauge-tick { stroke: var(--ink-muted); stroke-width: 1; opacity: 0.4; }
+        .gauge-tick-label { font-size: 9px; fill: var(--ink-muted); text-anchor: middle; }
+        .gauge-score-text { font-size: 2.6rem; font-weight: 800; fill: var(--ink); text-anchor: middle; font-family: 'SF Mono', monospace; }
+        .gauge-max-text { font-size: 0.78rem; fill: var(--ink-3); text-anchor: middle; }
+        .score-comment { font-size: 0.9rem; font-weight: 500; color: var(--rose); margin-top: 6px; text-align: center; animation: fadeInUp 0.5s ease 0.3s both; }
+        .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .feat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 10px; text-align: center; transition: all 0.2s; opacity: 0; transform: translateY(16px); }
+        .feat-card.in { animation: featIn 0.45s ease forwards; }
+        @keyframes featIn { to { opacity: 1; transform: translateY(0); } }
+        .feat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.06); }
+        .feat-card.hi { box-shadow: 0 4px 16px rgba(58,138,92,0.12); }
+        .feat-card.md { box-shadow: 0 4px 16px rgba(168,92,50,0.08); }
+        .feat-card.lo { box-shadow: 0 4px 16px rgba(181,84,106,0.08); }
+        .feat-card.hi { border-color: var(--green); background: var(--green-soft); }
+        .feat-card.md { border-color: var(--accent); background: var(--accent-soft); }
+        .feat-card.lo { border-color: var(--rose); background: var(--rose-soft); }
+        .feat-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin-bottom: 6px; font-weight: 500; }
+        .feat-score { font-size: 1.4rem; font-weight: 700; color: var(--ink); font-family: 'SF Mono', monospace; }
+        .feat-desc { font-size: 0.7rem; color: var(--ink-3); margin-top: 3px; }
+        .expr-section { margin-bottom: 20px; }
+        .expr-title { font-size: 0.78rem; color: var(--ink-3); text-align: center; margin-bottom: 12px; font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: center; }
+        .expr-title::before, .expr-title::after { content: ''; width: 24px; height: 1px; background: var(--border); }
+        .expr-duo { display: flex; gap: 12px; margin-bottom: 12px; }
+        .expr-card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px; text-align: center; transition: all 0.25s; }
+        .expr-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+        .expr-card-label { font-size: 0.68rem; color: var(--ink-muted); margin-bottom: 6px; font-weight: 600; }
+        .expr-emoji { font-size: 2rem; margin-bottom: 4px; animation: emojiIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+        @keyframes emojiIn { from { opacity: 0; transform: scale(0.3) rotate(-20deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+        .expr-name { font-size: 0.85rem; font-weight: 600; color: var(--ink-2); margin-bottom: 8px; animation: fadeInUp 0.4s ease 0.15s both; }
+        .expr-bars { text-align: left; }
+        .ebar { margin-bottom: 4px; }
+        .ebar-head { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--ink-3); }
+        .ebar-track { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 1px; }
+        .ebar-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width 1.2s cubic-bezier(0.34,1.56,0.64,1); }
+        .age-gender { display: flex; justify-content: center; gap: 10px; margin-top: 10px; font-size: 0.78rem; color: var(--ink-2); flex-wrap: wrap; }
+        .age-gender span { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; animation: fadeInUp 0.4s ease both; transition: all 0.2s; }
+        .age-gender span:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+        .age-gender span:nth-child(1) { animation-delay: 0.1s; }
+        .age-gender span:nth-child(2) { animation-delay: 0.2s; }
+        .age-gender span:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .compare-section { margin-bottom: 20px; }
+        .compare-title { font-size: 0.78rem; color: var(--ink-3); text-align: center; margin-bottom: 12px; font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: center; }
+        .compare-title::before, .compare-title::after { content: ''; width: 24px; height: 1px; background: var(--border); }
+        .compare-duo { display: flex; gap: 12px; }
+        .compare-card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; text-align: center; padding-bottom: 10px; transition: transform 0.2s, box-shadow 0.2s; animation: fadeInUp 0.5s ease both; }
+        .compare-card:nth-child(1) { animation-delay: 0.1s; }
+        .compare-card:nth-child(2) { animation-delay: 0.2s; }
+        .compare-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+        .compare-card canvas { width: 100%; height: auto; border-radius: 0 0 12px 12px; }
+        .compare-card-label { font-size: 0.7rem; color: var(--ink-3); padding: 10px 0; font-weight: 500; letter-spacing: 0.03em; }
+        .diff-legend { display: flex; justify-content: center; gap: 16px; font-size: 0.7rem; color: var(--ink-3); margin-top: 8px; }
+        .diff-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+        .diff-dot.hi { background: var(--green); }
+        .diff-dot.md { background: var(--accent); }
+        .diff-dot.lo { background: var(--rose); }
+        /* 关键点可视化 */
+        .landmark-overlay { position: absolute; inset: 0; border-radius: 18px; overflow: hidden; z-index: 2; opacity: 0; animation: lmFadeIn 0.4s ease forwards; }
+        @keyframes lmFadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        .landmark-overlay canvas { width: 100%; height: 100%; display: block; }
+        .landmark-toggle { position: absolute; bottom: 10px; right: 10px; z-index: 3; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 5px 12px; font-size: 0.7rem; cursor: pointer; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1); display: flex; align-items: center; gap: 5px; letter-spacing: 0.02em; }
+        .landmark-toggle:hover { background: rgba(0,0,0,0.7); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .landmark-toggle.active { background: rgba(168,92,50,0.85); border-color: rgba(255,200,160,0.3); box-shadow: 0 2px 12px rgba(168,92,50,0.4); }
+        .landmark-toggle .lm-icon { font-size: 0.8rem; transition: transform 0.3s; }
+        .landmark-toggle.active .lm-icon { transform: rotate(360deg); }
+        .landmark-legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px 12px; margin: 12px 0 4px; font-size: 0.65rem; color: var(--ink-3); padding: 10px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+        .landmark-legend-item { display: inline-flex; align-items: center; gap: 4px; transition: opacity 0.2s; }
+        .landmark-legend-item:hover { opacity: 0.7; }
+        .landmark-legend .lm-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px rgba(0,0,0,0.15); }
+        .landmark-count { font-size: 0.72rem; color: var(--ink-muted); text-align: center; margin: 6px 0 2px; }
+        .landmark-count strong { color: var(--accent); font-weight: 600; }
+        .beauty-section { margin-bottom: 20px; }
+        .beauty-title { font-size: 0.78rem; color: var(--ink-3); text-align: center; margin-bottom: 12px; font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: center; }
+        .beauty-title::before, .beauty-title::after { content: ''; width: 24px; height: 1px; background: var(--border); }
+        .beauty-duo { display: flex; gap: 12px; margin-bottom: 16px; }
+        .beauty-card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 18px 14px; text-align: center; transition: all 0.25s; animation: fadeInUp 0.5s ease both; }
+        .beauty-card:nth-child(1) { animation-delay: 0.1s; }
+        .beauty-card:nth-child(2) { animation-delay: 0.2s; }
+        .beauty-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+        .beauty-label { font-size: 0.72rem; color: var(--ink-muted); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px; }
+        .beauty-score-big { font-size: 2rem; font-weight: 800; font-family: 'SF Mono', monospace; line-height: 1; margin-bottom: 4px; animation: scoreIn 0.6s cubic-bezier(0.34,1.56,0.64,1) both; }
+        @keyframes scoreIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+        .beauty-score-big.high { color: var(--rose); }
+        .beauty-score-big.mid { color: var(--accent); }
+        .beauty-score-big.low { color: var(--ink-3); }
+        .beauty-grade { font-size: 0.78rem; font-weight: 600; color: var(--ink-2); margin-bottom: 12px; }
+        .beauty-bars { text-align: left; }
+        .bbar { margin-bottom: 8px; }
+        .bbar-head { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--ink-3); margin-bottom: 3px; }
+        .bbar-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+        .bbar-fill { height: 100%; border-radius: 2px; transition: width 1s cubic-bezier(0.34,1.56,0.64,1); }
+        .bbar-fill.hi { background: var(--rose); }
+        .bbar-fill.mi { background: var(--accent); }
+        .bbar-fill.lo { background: var(--ink-muted); }
+        .radar-title { font-size: 0.78rem; color: var(--ink-3); text-align: center; margin-bottom: 8px; font-weight: 500; display: flex; align-items: center; gap: 8px; justify-content: center; }
+        .radar-title::before, .radar-title::after { content: ''; width: 24px; height: 1px; background: var(--border); }
+        .radar-wrap { display: flex; justify-content: center; margin-bottom: 16px; }
+        .radar-svg { max-width: 260px; width: 100%; }
+        .radar-grid-line { fill: none; stroke: var(--radar-grid); stroke-width: 0.8; }
+        .radar-axis { stroke: var(--radar-grid); stroke-width: 0.5; }
+        .radar-shape { fill: var(--radar-fill); stroke: var(--radar-stroke); stroke-width: 1.5; stroke-linejoin: round; animation: radarIn 0.8s ease 0.4s both; }
+        @keyframes radarIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+        .radar-dot { fill: var(--radar-stroke); }
+        .radar-label { font-size: 10px; fill: var(--ink-3); text-anchor: middle; dominant-baseline: middle; font-weight: 500; }
+        .quote-box { background: var(--accent-soft); border: 1px solid var(--border); border-radius: 20px; padding: 18px 20px; font-size: 0.88rem; color: var(--ink-2); line-height: 1.7; position: relative; margin-bottom: 16px; transition: all 0.3s; animation: fadeInUp 0.5s ease 0.5s both; }
+        .quote-box:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+        .quote-box::before { content: '\201C'; position: absolute; top: 4px; left: 12px; font-size: 2.5rem; color: var(--accent); opacity: 0.15; font-family: Georgia, serif; line-height: 1; }
+        .action-row { display: flex; justify-content: center; gap: 10px; }
+        .btn-outline { background: none; border: 1.5px solid var(--border); border-radius: 14px; padding: 10px 28px; font-size: 0.85rem; font-weight: 500; color: var(--ink-2); cursor: pointer; transition: all 0.2s; }
+        .btn-outline:hover { border-color: var(--ink-3); color: var(--ink); }
+        .error-msg { text-align: center; padding: 12px 16px; background: var(--error-bg); border: 1px solid var(--error-border); border-radius: 14px; color: var(--error-text); font-size: 0.88rem; margin-bottom: 14px; display: none; }
+        .error-msg.show { display: block; }
+        .overlay { position: fixed; inset: 0; background: rgba(245,243,239,0.98); display: none; z-index: 1000; }
+        [data-theme="dark"] .overlay { background: rgba(15,14,12,0.98); }
+        .overlay.active { display: flex; }
+        .overlay canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+        .overlay-text { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
+        .overlay-icon { width: 56px; height: 56px; background: var(--rose-soft); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; animation: pulse 1.2s ease-in-out infinite; }
+        .overlay-icon svg { width: 28px; height: 28px; }
+        .overlay-title { font-size: 1.1rem; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+        .overlay-sub { font-size: 0.82rem; color: var(--ink-3); }
+        @media (max-width: 540px) {
+            body { padding: 8px; }
+            .card { border-radius: 24px; padding: 24px 16px 20px; }
+            h1 { font-size: 1.25rem; }
+            .upload-row { flex-direction: column; align-items: center; }
+            .upload-box { max-width: 100%; width: 100%; aspect-ratio: 4/3; }
+            .feat-grid { grid-template-columns: repeat(2, 1fr); }
+            .gauge-svg { width: 200px; height: 116px; }
+            .gauge-score-text { font-size: 2rem; }
+            .radar-svg { max-width: 220px; }
+            .beauty-duo, .expr-duo, .compare-duo { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <button class="theme-toggle" id="themeToggle" title="切换主题">☽</button>
+    <div class="header">
+        <div class="header-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+        <h1>夫妻相<span class="thin">分析</span></h1>
+        <p class="subtitle">上传两张正面照片，AI 解读你们的面部相似度</p>
+    </div>
+    <div class="error-msg" id="errorMsg"></div>
+    <div class="status-bar" id="statusBar"></div>
+    <div class="upload-row" id="uploadRow">
+        <div class="upload-box" id="box1"><input type="file" id="file1" accept="image/*" style="display:none"><div class="upload-placeholder" id="ph1"><div class="up-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="up-label">第一张照片</div><div class="up-hint">点击或拖拽上传正面照</div></div></div>
+        <div class="upload-box" id="box2"><input type="file" id="file2" accept="image/*" style="display:none"><div class="upload-placeholder" id="ph2"><div class="up-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="up-label">第二张照片</div><div class="up-hint">点击或拖拽上传正面照</div></div></div>
+    </div>
+    <button class="btn-primary" id="analyzeBtn" disabled>开始分析</button>
+    <div class="divider"></div>
+    <div class="results" id="results">
+        <div class="gauge-wrap" id="gaugeWrap"></div>
+        <div class="score-comment" id="scoreComment"></div>
+        <div class="feat-grid" id="featGrid"></div>
+        <div class="compare-section"><div class="compare-title">人脸关键点对比</div><div class="compare-duo" id="compareDuo"></div><div class="diff-legend"><span><span class="diff-dot hi"></span>相似 ≥ 75</span><span><span class="diff-dot md"></span>中等</span><span><span class="diff-dot lo"></span>差异 ≥ 45</span></div></div>
+        <div class="expr-section"><div class="expr-title">表情 · 年龄 · 性别</div><div class="expr-duo" id="exprDuo"></div></div>
+        <div class="beauty-section"><div class="beauty-title">颜值分析</div><div id="beautyWrap"></div></div>
+        <div class="radar-title">面部特征雷达图</div><div class="radar-wrap" id="radarWrap"></div>
+        <div class="quote-box" id="quoteBox"></div>
+        <div class="action-row"><button class="btn-outline" id="resetBtn">重新分析</button></div>
+    </div>
+</div>
+<div class="overlay" id="overlay"><canvas id="particleCanvas"></canvas><div class="overlay-text"><div class="overlay-icon"><svg viewBox="0 0 24 24" fill="none" stroke="var(--rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div><div class="overlay-title">正在分析夫妻相</div><div class="overlay-sub">提取面部特征并计算相似度</div></div></div>
+
+<script>
+(function(){
+    // roundRect polyfill
+    if(!CanvasRenderingContext2D.prototype.roundRect){CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){if(typeof r==='number')r={tl:r,tr:r,br:r,bl:r};this.moveTo(x+r.tl,y);this.lineTo(x+w-r.tr,y);this.quadraticCurveTo(x+w,y,x+w,y+r.tr);this.lineTo(x+w,y+h-r.br);this.quadraticCurveTo(x+w,y+h,x+w-r.br,y+h);this.lineTo(x+r.bl,y+h);this.quadraticCurveTo(x,y+h,x,y+h-r.bl);this.lineTo(x,y+r.tl);this.quadraticCurveTo(x,y,x+r.tl,y);this.closePath();return this}}
+    const $=id=>document.getElementById(id);
+    const statusBar=$('statusBar'),errorMsg=$('errorMsg');
+    const box1=$('box1'),box2=$('box2'),ph1=$('ph1'),ph2=$('ph2');
+    const file1=$('file1'),file2=$('file2');
+    const analyzeBtn=$('analyzeBtn'),results=$('results');
+    const overlay=$('overlay'),themeToggle=$('themeToggle');
+    const particleCanvas=$('particleCanvas'),pctx=particleCanvas.getContext('2d');
+
+    let img1=null,img2=null,modelsOk=false,expModelOk=false,ageModelOk=false,particleRaf=null;
+
+    const MODEL_URL='https://unpkg.com/@vladmandic/face-api@1.7.15/model';
+
+    // ── 粒子爱心动画 ──────────────────────────────
+    const particles=[],MAX_P=120;
+    function initParticles(){
+        if(particles.length)return;
+        for(let i=0;i<MAX_P;i++)particles.push({
+            x:Math.random()*innerWidth,y:Math.random()*innerHeight,
+            vx:(Math.random()-0.5)*0.6,vy:(Math.random()-0.5)*0.6-0.3,
+            life:0.6+Math.random()*0.4,r:2+Math.random()*3,
+            hue:Math.random()<0.6?0:350,
+            ox:innerWidth/2,oy:innerHeight/2,
+            phase:Math.random()*Math.PI*2,amp:40+Math.random()*80
+        });
+    }
+    function drawParticles(){
+        if(!overlay.classList.contains('active')){particleRaf=null;return}
+        particleCanvas.width=innerWidth;particleCanvas.height=innerHeight;
+        pctx.clearRect(0,0,innerWidth,innerHeight);
+        const cx=innerWidth/2,cy=innerHeight/2-30,t=performance.now()/1000;
+        for(const p of particles){
+            const a=p.phase+t*p.vx*2;
+            const hx=16*Math.pow(Math.sin(a),3);
+            const hy=13*Math.cos(a)-5*Math.cos(2*a)-2*Math.cos(3*a)-Math.cos(4*a);
+            const tx=cx+hx*(p.amp/60),ty=cy-hy*(p.amp/60);
+            p.x+=(tx-p.x)*0.03+(Math.random()-0.5)*0.3;
+            p.y+=(ty-p.y)*0.03+(Math.random()-0.5)*0.3;
+            p.life=Math.min(1,p.life+0.003);
+            pctx.beginPath();pctx.arc(p.x,p.y,p.r*p.life,0,Math.PI*2);
+            pctx.fillStyle=`hsla(${p.hue},70%,${50+p.life*30}%,${p.life*0.7})`;
+            pctx.fill();
+        }
+        for(let i=0;i<particles.length;i++){
+            for(let j=i+1;j<particles.length;j++){
+                const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y,d=Math.sqrt(dx*dx+dy*dy);
+                if(d<50){pctx.beginPath();pctx.moveTo(particles[i].x,particles[i].y);pctx.lineTo(particles[j].x,particles[j].y);pctx.strokeStyle=`rgba(180,100,100,${0.08*(1-d/50)})`;pctx.lineWidth=0.5;pctx.stroke()}
+            }
+        }
+        particleRaf=requestAnimationFrame(drawParticles);
+    }
+    function startParticles(){initParticles();if(!particleRaf)drawParticles()}
+    function stopParticles(){if(particleRaf){cancelAnimationFrame(particleRaf);particleRaf=null}}
+
+    // ── 数字滚动动画 ──────────────────────────────
+    function animateNumber(el,target,duration=1400,suffix=''){
+        const start=0,startTime=performance.now();
+        function update(now){
+            const elapsed=now-startTime,progress=Math.min(elapsed/duration,1);
+            const eased=1-Math.pow(1-progress,3);
+            el.textContent=Math.round(start+(target-start)*eased)+suffix;
+            if(progress<1)requestAnimationFrame(update);else el.textContent=target+suffix;
+        }
+        requestAnimationFrame(update);
+    }
+
+    // ── 模型加载（带重试） ────────────────────────
+    async function fetchWithRetry(url,retries=2){
+        for(let i=0;i<=retries;i++){
+            try{const r=await fetch(url);if(r.ok)return r;throw new Error(r.status)}catch(e){if(i===retries)throw e;await new Promise(r=>setTimeout(r,1000*(i+1)))}
+        }
+    }
+    async function loadOneModel(net,name,retries=2){
+        for(let i=0;i<=retries;i++){
+            try{await net.loadFromUri(MODEL_URL);return true}catch(e){console.warn(`${name} load attempt ${i+1} failed:`,e);if(i<retries)await new Promise(r=>setTimeout(r,1500))}
+        }
+        return false;
+    }
+    async function loadModels(){
+        statusBar.className='status-bar';statusBar.textContent='正在加载人脸检测模型...';
+        try{
+            if(!await loadOneModel(faceapi.nets.tinyFaceDetector,'TinyFaceDetector'))throw new Error('人脸检测模型加载失败');
+            statusBar.textContent='正在加载面部关键点模型...';
+            if(!await loadOneModel(faceapi.nets.faceLandmark68Net,'FaceLandmark68'))throw new Error('面部关键点模型加载失败');
+            statusBar.textContent='正在加载特征识别模型...';
+            if(!await loadOneModel(faceapi.nets.faceRecognitionNet,'FaceRecognition'))throw new Error('特征识别模型加载失败');
+            modelsOk=true;updBtn();
+            statusBar.className='status-bar ok';statusBar.textContent='核心模型加载完成，可以开始分析';
+            // 可选模型后台加载
+            statusBar.textContent='正在加载表情/年龄模型（可选）...';
+            Promise.all([
+                loadOneModel(faceapi.nets.faceExpressionNet,'Expression',2).then(ok=>{expModelOk=ok;return ok}),
+                loadOneModel(faceapi.nets.ageGenderNet,'AgeGender',2).then(ok=>{ageModelOk=ok;return ok})
+            ]).then(([exp,age])=>{
+                statusBar.className='status-bar ok';
+                const parts=[];
+                if(exp)parts.push('表情');if(age)parts.push('年龄性别');
+                if(parts.length)statusBar.textContent='模型就绪（含'+parts.join('、')+'），可以开始分析';
+                else statusBar.innerHTML='可选模型加载失败 <button class="retry-link" id="retryOptional">重试表情模型</button>，不影响核心分析';
+                const retryBtn=$('retryOptional');
+                if(retryBtn)retryBtn.onclick=async()=>{
+                    statusBar.textContent='正在重试加载表情模型...';
+                    const ok=await loadOneModel(faceapi.nets.faceExpressionNet,'Expression',2);
+                    expModelOk=ok;
+                    statusBar.className=ok?'status-bar ok':'status-bar err';
+                    statusBar.textContent=ok?'表情模型加载成功':'表情模型加载失败，请检查网络或刷新页面';
+                    setTimeout(()=>{statusBar.textContent=''},4000);
+                };
+                setTimeout(()=>{if(statusBar.textContent.startsWith('模型就绪'))statusBar.textContent=''},4000);
+            });
+        }catch(e){
+            modelsOk=false;statusBar.className='status-bar err';
+            statusBar.innerHTML='模型加载失败 <button class="retry-link" id="retryLink">重试</button>';
+            $('retryLink').onclick=loadModels;showErr(e.message||'模型加载失败，请检查网络');
+        }
+    }
+
+    // ── 文件处理 ──────────────────────────────────
+    function handleFile(e,idx){
+        const file=e.target.files[0];
+        if(!file||!file.type.startsWith('image/'))return;
+        const reader=new FileReader();
+        reader.onload=ev=>{
+            const img=new Image();
+            img.onload=()=>{if(idx===1){img1=img;showImg(img,box1,ph1)}else{img2=img;showImg(img,box2,ph2)}updBtn()};
+            img.src=ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    function showImg(img,box,ph){ph.style.display='none';box.classList.add('has-image');const old=box.querySelector('img');if(old)old.remove();const el=document.createElement('img');el.src=img.src;box.appendChild(el)}
+    function updBtn(){analyzeBtn.disabled=!(img1&&img2&&modelsOk)}
+    function showErr(msg){errorMsg.textContent=msg;errorMsg.classList.add('show');setTimeout(()=>errorMsg.classList.remove('show'),5000)}
+
+    // ── 上传框事件 ────────────────────────────────
+    [box1,box2].forEach((box,i)=>{
+        const inp=i===0?file1:file2;
+        box.onclick=()=>inp.click();
+        inp.onchange=e=>handleFile(e,i+1);
+        box.ondragover=e=>{e.preventDefault();box.classList.add('drag-over')};
+        box.ondragleave=()=>{if(!box.classList.contains('has-image'))box.classList.remove('drag-over')};
+        box.ondrop=e=>{e.preventDefault();box.classList.remove('drag-over');if(e.dataTransfer.files.length){const dt=new DataTransfer();dt.items.add(e.dataTransfer.files[0]);inp.files=dt.files;handleFile({target:inp},i+1)}};
+    });
+
+    // ── 分析 ──────────────────────────────────────
+    analyzeBtn.onclick=async()=>{
+        if(!img1||!img2){showErr('请先上传两张照片');return}
+        if(!modelsOk){showErr('模型未加载完成');return}
+        overlay.classList.add('active');startParticles();analyzeBtn.classList.add('loading');
+        try{
+            const opts=new faceapi.TinyFaceDetectorOptions({inputSize:512,scoreThreshold:0.5});
+            let d1,d2;
+            try{
+                const c1=faceapi.detectSingleFace(img1,opts).withFaceLandmarks().withFaceDescriptor();
+                const c2=faceapi.detectSingleFace(img2,opts).withFaceLandmarks().withFaceDescriptor();
+                if(expModelOk){c1.withFaceExpressions();c2.withFaceExpressions()}
+                if(ageModelOk){c1.withAgeAndGender();c2.withAgeAndGender()}
+                [d1,d2]=await Promise.all([c1,c2]);
+            }catch(e){d1=await faceapi.detectSingleFace(img1,opts).withFaceLandmarks().withFaceDescriptor();d2=await faceapi.detectSingleFace(img2,opts).withFaceLandmarks().withFaceDescriptor()}
+            if(!d1)throw new Error('第一张照片未检测到人脸，请上传正面清晰照片');
+            if(!d2)throw new Error('第二张照片未检测到人脸，请上传正面清晰照片');
+            const dist=faceapi.euclideanDistance(d1.descriptor,d2.descriptor);
+            const sim=Math.max(0,Math.min(100,100/(1+Math.exp((dist-0.70)/0.12))));
+            const feats=calcFeatures(d1.landmarks,d2.landmarks);
+            const b1=calcBeautyScore(d1.landmarks),b2=calcBeautyScore(d2.landmarks);
+            displayResult(sim,feats,b1,b2,d1,d2);
+        }catch(e){showErr(e.message||'分析出错，请重试')}
+        finally{overlay.classList.remove('active');stopParticles();analyzeBtn.classList.remove('loading')}
+    };
+
+    // ── 特征计算 ──────────────────────────────────
+    function calcFeatures(lm1,lm2){const p1=lm1.positions,p2=lm2.positions;return{eyes:calcEyes(p1,p2),nose:calcNose(p1,p2),mouth:calcMouth(p1,p2),face:calcFace(p1,p2),brows:calcBrows(p1,p2),overall:calcOverall(p1,p2)}}
+    function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+    function clamp(v){return Math.max(0,Math.min(100,Math.round(v)))}
+    function eyeMetrics(p,w){const lw=dist(p[36],p[39])/w,rw=dist(p[42],p[45])/w,lh=Math.abs(p[37].y-p[41].y)/w,rh=Math.abs(p[43].y-p[47].y)/w,ed=dist(p[36],p[45])/w;return{w:(lw+rw)/2,h:(lh+rh)/2,ed}}
+    function calcEyes(p1,p2){const w1=dist(p1[0],p1[16]),w2=dist(p2[0],p2[16]),m1=eyeMetrics(p1,w1),m2=eyeMetrics(p2,w2);return clamp((1-(Math.abs(m1.ed-m2.ed)+Math.abs(m1.w-m2.w)+Math.abs(m1.h-m2.h))*7)*100)}
+    function calcNose(p1,p2){const w1=dist(p1[0],p1[16]),w2=dist(p2[0],p2[16]),nl1=dist(p1[27],p1[33])/w1,nl2=dist(p2[27],p2[33])/w2,nw1=dist(p1[31],p1[35])/w1,nw2=dist(p2[31],p2[35])/w2,ba1=Math.atan2(p1[30].y-p1[27].y,p1[30].x-p1[27].x),ba2=Math.atan2(p2[30].y-p2[27].y,p2[30].x-p2[27].x);return clamp((1-(Math.abs(nl1-nl2)+Math.abs(nw1-nw2)+Math.abs(ba1-ba2)*0.3)*10)*100)}
+    function calcMouth(p1,p2){const w1=dist(p1[0],p1[16]),w2=dist(p2[0],p2[16]),mw1=dist(p1[48],p1[54])/w1,mw2=dist(p2[48],p2[54])/w2,lt1=Math.abs(p1[51].y-p1[57].y)/w1,lt2=Math.abs(p2[51].y-p2[57].y)/w2,ul1=dist(p1[51],p1[62])/w1,ul2=dist(p2[51],p2[62])/w2;return clamp((1-(Math.abs(mw1-mw2)+Math.abs(lt1-lt2)+Math.abs(ul1-ul2))*9)*100)}
+    function calcFace(p1,p2){const w1=dist(p1[0],p1[16]),w2=dist(p2[0],p2[16]),h1=dist(p1[27],{x:(p1[0].x+p1[16].x)/2,y:p1[8].y}),h2=dist(p2[27],{x:(p2[0].x+p2[16].x)/2,y:p2[8].y}),fr1=w1/h1,fr2=w2/h2,cw1=dist(p1[2],p1[14])/w1,cw2=dist(p2[2],p2[14])/w2,ja1=Math.abs(Math.atan2(p1[8].y-p1[0].y,p1[8].x-p1[0].x)-Math.atan2(p1[8].y-p1[16].y,p1[8].x-p1[16].x)),ja2=Math.abs(Math.atan2(p2[8].y-p2[0].y,p2[8].x-p2[0].x)-Math.atan2(p2[8].y-p2[16].y,p2[8].x-p2[16].x));return clamp((1-(Math.abs(fr1-fr2)+Math.abs(cw1-cw2)+Math.abs(ja1-ja2)*0.4)*4)*100)}
+    function browArc(p,w){const lm=p[19],rm=p[24],lb=dist(p[17],p[21]),rb=dist(p[22],p[26]),la=(lm.y-(p[17].y+p[21].y)/2)/w,ra=(rm.y-(p[22].y+p[26].y)/2)/w;return{span:(lb+rb)/2/w,arc:(la+ra)/2}}
+    function calcBrows(p1,p2){const w1=dist(p1[0],p1[16]),w2=dist(p2[0],p2[16]),bd1=dist(p1[21],p1[22])/w1,bd2=dist(p2[21],p2[22])/w2,b1=browArc(p1,w1),b2=browArc(p2,w2);return clamp((1-(Math.abs(bd1-bd2)+Math.abs(b1.span-b2.span)+Math.abs(b1.arc-b2.arc)*2)*12)*100)}
+    function calcOverall(p1,p2){const w1=dist(p1[0],p1[16]),w2=dist(p2[0],p2[16]),keys=[0,8,16,21,22,27,30,33,36,39,42,45,48,54,57];let total=0;for(const i of keys){const n1={x:(p1[i].x-p1[0].x)/w1,y:(p1[i].y-p1[27].y)/w1},n2={x:(p2[i].x-p2[0].x)/w2,y:(p2[i].y-p2[27].y)/w2};total+=Math.hypot(n1.x-n2.x,n1.y-n2.y)}return clamp((1-total/keys.length*4.5)*100)}
+
+    // ── 颜值评分（升级版） ──────────────────────────
+    function calcBeautyScore(lm){
+        const p=lm.positions,w=dist(p[0],p[16]);
+        // 对称性：左右对称点对
+        const midX=(p[27].x+p[30].x+p[33].x)/3;
+        const symPairs=[[17,26],[18,25],[19,24],[20,23],[21,22],[36,45],[37,44],[38,43],[39,42],[40,41],[31,35],[32,34],[48,54],[49,53],[50,52],[1,15],[2,14],[3,13],[4,12],[5,11],[6,10],[7,9]];
+        let symSum=0;for(const[li,ri]of symPairs){symSum+=Math.abs(Math.abs(p[li].x-midX)/w-Math.abs(p[ri].x-midX)/w)}
+        const symmetry=clamp(100-(symSum/symPairs.length)*500);
+        // 三庭五眼
+        const browY=(p[19].y+p[24].y)/2,t1=browY-p[27].y,t2=p[33].y-browY,t3=p[8].y-p[33].y,faceH=t1+t2+t3;
+        const thirdsDev=Math.abs(t1/faceH-1/3)+Math.abs(t2/faceH-1/3)+Math.abs(t3/faceH-1/3);
+        const thirds=clamp((1-thirdsDev*2.5)*100);
+        const eyeW=dist(p[36],p[39]),fiveEyes=clamp(100-Math.abs(w/eyeW-5)*18);
+        const goldenRatio=clamp(thirds*0.6+fiveEyes*0.4);
+        // 五官精致
+        const ew=dist(p[36],p[39]),eh=(Math.abs(p[37].y-p[41].y)+Math.abs(p[38].y-p[40].y))/2,eyeRef=clamp(100-Math.abs(ew/(eh||1)-3)*15);
+        const nw=dist(p[31],p[35])/w,noseRef=clamp(100-Math.abs(nw-0.25)*300);
+        const mw=dist(p[48],p[54])/w,mouthRef=clamp(100-Math.abs(mw-0.38)*250);
+        const browEyeDist=((p[37].y-p[19].y)+(p[44].y-p[24].y))/2/(faceH||1),browEyeRef=clamp(100-Math.abs(browEyeDist-0.08)*800);
+        const refinement=Math.round(eyeRef*0.3+noseRef*0.25+mouthRef*0.25+browEyeRef*0.2);
+        // 轮廓流畅
+        const jawPts=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16];let smoothness=0;
+        for(let i=1;i<jawPts.length-1;i++){const prev=p[jawPts[i-1]],curr=p[jawPts[i]],next=p[jawPts[i+1]];smoothness+=Math.abs(Math.atan2(next.y-curr.y,next.x-curr.x)-Math.atan2(curr.y-prev.y,curr.x-prev.x))}
+        const jawW=dist(p[4],p[12]),chinDepth=dist({x:(p[4].x+p[12].x)/2,y:(p[4].y+p[12].y)/2},p[8]);
+        const vShape=clamp((chinDepth/(jawW||1))*150,0,100);
+        const contour=clamp(100-smoothness*12)*0.85+vShape*0.15;
+        const total=Math.round(symmetry*0.2+goldenRatio*0.3+refinement*0.25+contour*0.25);
+        return{total,symmetry,goldenRatio,refinement,contour}
+    }
+    // 基于关键点几何特征修正性别概率
+    function adjustGenderByLandmarks(aiGender,aiProb,landmarks){
+        const p=landmarks.positions,w=dist(p[0],p[16]);
+        const faceH=dist(p[27],{x:(p[0].x+p[16].x)/2,y:p[8].y}),faceRatio=faceH/w;
+        const jawW=dist(p[4],p[12]),jawRatio=jawW/w;
+        const browRidge=((p[37].y-p[19].y)+(p[44].y-p[24].y))/2/faceH;
+        const noseW=dist(p[31],p[35])/w,mouthW=dist(p[48],p[54])/w;
+        const chinDepth=dist({x:(p[4].x+p[12].x)/2,y:(p[4].y+p[12].y)/2},p[8]),chinV=chinDepth/(jawW||1);
+        let maleScore=0.5;
+        if(faceRatio>1.25)maleScore+=0.08;else if(faceRatio<1.1)maleScore-=0.08;
+        if(jawRatio>0.75)maleScore+=0.07;else if(jawRatio<0.6)maleScore-=0.07;
+        if(browRidge<0.06)maleScore+=0.06;else if(browRidge>0.1)maleScore-=0.06;
+        if(noseW>0.26)maleScore+=0.05;else if(noseW<0.2)maleScore-=0.05;
+        if(mouthW>0.4)maleScore+=0.04;else if(mouthW<0.33)maleScore-=0.04;
+        if(chinV>0.4)maleScore+=0.05;else if(chinV<0.25)maleScore-=0.05;
+        maleScore=clamp(maleScore*100)/100;
+        let finalMale=aiGender==='male'?aiProb*0.6+maleScore*0.4:(1-aiProb)*0.6+maleScore*0.4;
+        finalMale=Math.max(0.05,Math.min(0.95,finalMale));
+        return{male:finalMale,female:1-finalMale}
+    }
+    function beautyGrade(s){if(s>=85)return{label:'S 级',cls:'high'};if(s>=70)return{label:'A 级',cls:'high'};if(s>=55)return{label:'B 级',cls:'mid'};if(s>=40)return{label:'C 级',cls:'mid'};return{label:'D 级',cls:'low'}}
+
+    // ── 关键点可视化：颜色分区定义 ──────────────────
+    const FACE_CONN=[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[17,18],[18,19],[19,20],[20,21],[22,23],[23,24],[24,25],[25,26],[27,28],[28,29],[29,30],[31,32],[32,33],[33,34],[34,35],[36,37],[37,38],[38,39],[39,40],[40,41],[41,36],[42,43],[43,44],[44,45],[45,46],[46,47],[47,42],[48,49],[49,50],[50,51],[51,52],[52,53],[53,54],[54,55],[55,56],[56,57],[57,58],[58,59],[59,48],[60,61],[61,62],[62,63],[63,64],[64,65],[65,66],[66,67],[67,60]];
+    const LM_REGIONS={
+        jaw:{range:[0,16],color:'#e8a070',label:'轮廓'},
+        leftBrow:{range:[17,21],color:'#a0d8a0',label:'左眉'},
+        rightBrow:{range:[22,26],color:'#a0d8a0',label:'右眉'},
+        noseBridge:{range:[27,30],color:'#80b0e0',label:'鼻梁'},
+        noseBottom:{range:[31,35],color:'#6090c0',label:'鼻底'},
+        leftEye:{range:[36,41],color:'#e07070',label:'左眼'},
+        rightEye:{range:[42,47],color:'#e07070',label:'右眼'},
+        outerLip:{range:[48,59],color:'#d070b0',label:'外唇'},
+        innerLip:{range:[60,67],color:'#c050a0',label:'内唇'}
+    };
+    function getRegionColor(idx){
+        for(const r of Object.values(LM_REGIONS)){if(idx>=r.range[0]&&idx<=r.range[1])return r.color}
+        return '#ccc';
+    }
+    function drawFaceLandmarks(img,landmarks,canvas,showLabels){
+        const ds={width:img.width,height:img.height};
+        faceapi.matchDimensions(canvas,ds);
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,canvas.width,canvas.height);
+        const pts=landmarks.positions,sx=canvas.width/img.width,sy=canvas.height/img.height;
+        // 暗角效果 — 让关键点更突出
+        const grd=ctx.createRadialGradient(canvas.width/2,canvas.height/2,canvas.width*0.25,canvas.width/2,canvas.height/2,canvas.width*0.7);
+        grd.addColorStop(0,'rgba(0,0,0,0)');grd.addColorStop(1,'rgba(0,0,0,0.15)');
+        ctx.fillStyle=grd;ctx.fillRect(0,0,canvas.width,canvas.height);
+        // 绘制连线（按区域着色 + 发光）
+        ctx.save();
+        ctx.lineCap='round';ctx.lineJoin='round';
+        for(const[a,b]of FACE_CONN){
+            const col=getRegionColor(a),ax=pts[a].x*sx,ay=pts[a].y*sy,bx=pts[b].x*sx,by=pts[b].y*sy;
+            // 发光层
+            ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);
+            ctx.strokeStyle=col;ctx.lineWidth=3;ctx.globalAlpha=0.12;ctx.stroke();
+            // 实线层
+            ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);
+            ctx.strokeStyle=col;ctx.lineWidth=1.3;ctx.globalAlpha=0.75;ctx.stroke();
+        }
+        ctx.restore();
+        // 绘制关键点（发光 + 实心 + 白边）
+        for(let i=0;i<pts.length;i++){
+            const col=getRegionColor(i),x=pts[i].x*sx,y=pts[i].y*sy;
+            // 外发光
+            ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);
+            ctx.fillStyle=col;ctx.globalAlpha=0.1;ctx.fill();ctx.globalAlpha=1;
+            // 主点
+            ctx.beginPath();ctx.arc(x,y,2.4,0,Math.PI*2);
+            ctx.fillStyle=col;ctx.fill();
+            // 白色高光
+            ctx.beginPath();ctx.arc(x-0.6,y-0.6,0.9,0,Math.PI*2);
+            ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fill();
+            // 外圈
+            ctx.beginPath();ctx.arc(x,y,2.4,0,Math.PI*2);
+            ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=0.6;ctx.stroke();
+        }
+        // 绘制编号标签
+        if(showLabels){
+            ctx.font='600 7px -apple-system,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+            for(let i=0;i<pts.length;i++){
+                const x=pts[i].x*sx,y=pts[i].y*sy;
+                // 标签背景（圆角胶囊）
+                const tw=14,th=10,tx=x+6,ty=y-6;
+                ctx.fillStyle='rgba(0,0,0,0.6)';
+                ctx.beginPath();ctx.roundRect(tx-tw/2,ty-th/2,tw,th,3);ctx.fill();
+                ctx.fillStyle='#fff';ctx.fillText(i,tx,ty+0.5);
+            }
+        }
+    }
+    // 上传框上的 landmarks 浮层
+    let lmVisible1=false,lmVisible2=false,lmDet1=null,lmDet2=null;
+    function addLandmarkOverlay(box,img,det,idx){
+        const old=box.querySelector('.landmark-overlay');if(old)old.remove();
+        const oldBtn=box.querySelector('.landmark-toggle');if(oldBtn)oldBtn.remove();
+        const overlay=document.createElement('div');overlay.className='landmark-overlay';overlay.style.display='none';
+        const cvs=document.createElement('canvas');overlay.appendChild(cvs);box.appendChild(overlay);
+        const btn=document.createElement('button');btn.className='landmark-toggle';
+        btn.innerHTML='<span class="lm-icon">🔍</span>关键点';
+        btn.onclick=(e)=>{e.stopPropagation();
+            const vis=idx===1?!lmVisible1:!lmVisible2;
+            if(idx===1)lmVisible1=vis;else lmVisible2=vis;
+            overlay.style.display=vis?'block':'none';
+            btn.classList.toggle('active',vis);
+            btn.innerHTML=vis?'<span class="lm-icon">✕</span>隐藏':'<span class="lm-icon">🔍</span>关键点';
+            if(vis)requestAnimationFrame(()=>drawFaceLandmarks(img,det.landmarks,cvs,false));
+        };
+        box.appendChild(btn);
+    }
+    function renderCompare(d1,d2){
+        const cnt=$('compareDuo');cnt.innerHTML='';
+        // 关键点图例（移除旧的）
+        const oldLegend=cnt.parentElement.querySelector('.landmark-legend');if(oldLegend)oldLegend.remove();
+        const legend=document.createElement('div');legend.className='landmark-legend';
+        for(const r of Object.values(LM_REGIONS)){
+            const n=r.range[1]-r.range[0]+1;
+            legend.innerHTML+=`<span class="landmark-legend-item"><span class="lm-dot" style="background:${r.color}"></span>${r.label} (${n})</span>`;
+        }
+        cnt.parentElement.insertBefore(legend,cnt);
+        // 两张对比卡片
+        [img1,img2].forEach((img,i)=>{
+            const det=i===0?d1:d2;
+            const wrap=document.createElement('div');wrap.className='compare-card';
+            const label=document.createElement('div');label.className='compare-card-label';
+            label.textContent='第'+(i+1)+'张照片 · 68 个面部关键点';
+            const cvs=document.createElement('canvas');
+            wrap.appendChild(label);wrap.appendChild(cvs);cnt.appendChild(wrap);
+            requestAnimationFrame(()=>drawFaceLandmarks(img,det.landmarks,cvs,false));
+        });
+    }
+
+    // ── 显示结果 ──────────────────────────────────
+    const NAMES={eyes:'眼型',nose:'鼻型',mouth:'嘴型',face:'脸型',brows:'眉形',overall:'轮廓'};
+    const DESCS={eyes:'眼距·眼宽·眼形',nose:'鼻长·鼻宽比例',mouth:'嘴宽·唇形',face:'脸宽比·下颌',brows:'眉间距·眉长',overall:'整体结构'};
+
+    function displayResult(sim,feats,b1,b2,d1,d2){
+        results.classList.add('active');
+        const geoAvg=feats.eyes*0.20+feats.nose*0.15+feats.mouth*0.10+feats.face*0.25+feats.brows*0.10+feats.overall*0.20;
+        const score=Math.round(sim*0.6+geoAvg*0.4);
+
+        $('gaugeWrap').innerHTML=renderGauge(0);
+        $('scoreComment').textContent=getComment(score);
+        setTimeout(()=>{const txt=$('gaugeWrap').querySelector('.gauge-score-text');if(txt){txt.textContent='0';animateNumber(txt,score,1600)}},200);
+        setTimeout(()=>{$('gaugeWrap').innerHTML=renderGauge(score)},200);
+
+        const featEl=$('featGrid');featEl.innerHTML='';
+        Object.entries(feats).forEach(([k,v],idx)=>{
+            const cls=v>=75?'hi':v>=45?'md':'lo',card=document.createElement('div');
+            card.className=`feat-card ${cls}`;card.style.animationDelay=(idx*0.08)+'s';
+            card.innerHTML=`<div class="feat-label">${NAMES[k]}</div><div class="feat-score">0%</div><div class="feat-desc">${DESCS[k]}</div>`;
+            featEl.appendChild(card);requestAnimationFrame(()=>card.classList.add('in'));
+            setTimeout(()=>{const sc=card.querySelector('.feat-score');if(sc)animateNumber(sc,v,1000,'%')},300+idx*120);
+        });
+
+        renderCompare(d1,d2);
+        // 在上传照片上添加关键点叠加按钮
+        lmDet1=d1;lmDet2=d2;lmVisible1=lmVisible2=false;
+        addLandmarkOverlay(box1,img1,d1,1);addLandmarkOverlay(box2,img2,d2,2);
+        renderExpressions(d1,d2);
+        $('beautyWrap').innerHTML=renderBeauty(b1,b2);
+        $('radarWrap').innerHTML=renderRadar(Object.entries(feats).map(([k,v])=>({l:NAMES[k],v})));
+        $('quoteBox').textContent=getQuote(score,feats,NAMES);
+        results.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+
+    // ── 表情/年龄/性别 ────────────────────────────
+    const EMOJIS={happy:'😊',sad:'😢',angry:'😠',fearful:'😨',disgusted:'🤢',surprised:'😲',neutral:'😐'};
+    const EXPR_NAMES={happy:'开心',sad:'难过',angry:'生气',fearful:'害怕',disgusted:'厌恶',surprised:'惊讶',neutral:'平静'};
+    const EXPR_ORDER=['happy','surprised','neutral','sad','angry','fearful','disgusted'];
+
+    function renderExpressions(d1,d2){
+        const cnt=$('exprDuo');cnt.innerHTML='';
+        if(!expModelOk&&!ageModelOk){cnt.innerHTML='<div style="text-align:center;color:var(--ink-muted);font-size:0.78rem;width:100%">表情与年龄模型未加载</div>';return}
+        [d1,d2].forEach((d,i)=>{
+            const card=document.createElement('div');card.className='expr-card';
+            let body=`<div class="expr-card-label">第${i+1}张照片</div>`;
+            if(d.expressions){
+                const exps=d.expressions;
+                const top=EXPR_ORDER.reduce((a,b)=>(exps[a]||0)>(exps[b]||0)?a:b,'neutral');
+                body+=`<div class="expr-emoji">${EMOJIS[top]||'😐'}</div>`;
+                body+=`<div class="expr-name">${EXPR_NAMES[top]} ${Math.round((exps[top]||0)*100)}%</div>`;
+                body+='<div class="expr-bars">';
+                for(const key of EXPR_ORDER){const v=Math.round((exps[key]||0)*100);body+=`<div class="ebar"><div class="ebar-head"><span>${EXPR_NAMES[key]}</span><span>${v}%</span></div><div class="ebar-track"><div class="ebar-fill" style="width:${v}%"></div></div></div>`}
+                body+='</div>';
+            }else{body+='<div style="color:var(--ink-muted);font-size:0.75rem;padding:8px">表情模型未加载</div>'}
+            // 性别：模型 + 几何启发式修正
+            if(d.age!==undefined||d.gender!==undefined){
+                const age=d.age?Math.round(d.age):'?';
+                if(d.gender!==undefined&&ageModelOk){
+                    const gAdj=adjustGenderByLandmarks(d.gender,d.genderProbability,d.landmarks);
+                    const genderDisplay=gAdj.male>gAdj.female?'男':'女';
+                    const conf=Math.round(Math.max(gAdj.male,gAdj.female)*100);
+                    const confHint=conf>=80?'高置信':conf>=60?'中置信':'低置信';
+                    body+=`<div class="age-gender"><span>🎂 约 ${age} 岁</span><span>👤 ${genderDisplay} · ${confHint}</span><span>♂${Math.round(gAdj.male*100)}% ♀${Math.round(gAdj.female*100)}%</span></div>`;
+                }else if(d.age!==undefined){
+                    body+=`<div class="age-gender"><span>🎂 约 ${age} 岁</span></div>`;
+                }
+            }
+            card.innerHTML=body;cnt.appendChild(card);
+        });
+    }
+
+    // ── 颜值展示 ──────────────────────────────────
+    function renderBeauty(b1,b2){
+        const labels={symmetry:'对称性',goldenRatio:'三庭五眼',refinement:'五官精致',contour:'轮廓流畅'};
+        return`<div class="beauty-duo">${[b1,b2].map((b,i)=>{const g=beautyGrade(b.total),bars=Object.entries(labels).map(([k,l])=>{const v=b[k],cls=v>=70?'hi':v>=45?'mi':'lo';return`<div class="bbar"><div class="bbar-head"><span>${l}</span><span>${v}</span></div><div class="bbar-track"><div class="bbar-fill ${cls}" style="width:${v}%"></div></div></div>`}).join('');return`<div class="beauty-card"><div class="beauty-label">第${i+1}张照片</div><div class="beauty-score-big ${g.cls}">${b.total}</div><div class="beauty-grade">${g.label}</div><div class="beauty-bars">${bars}</div></div>`}).join('')}</div>`;
+    }
+
+    // ── 仪表盘 ────────────────────────────────────
+    function renderGauge(sc){const cx=120,cy=118,r=92,startA=200*Math.PI/180,endA=340*Math.PI/180,sx=cx+r*Math.cos(startA),sy=cy+r*Math.sin(startA),ex=cx+r*Math.cos(endA),ey=cy+r*Math.sin(endA),needleA=(200+sc/100*140)*Math.PI/180,nx=cx+(r-12)*Math.cos(needleA),ny=cy+(r-12)*Math.sin(needleA);let ticks='';for(let i=0;i<=10;i++){const a=(200+i*14)*Math.PI/180,x1=cx+(r-2)*Math.cos(a),y1=cy+(r-2)*Math.sin(a),x2=cx+(r+(i%5===0?10:5))*Math.cos(a),y2=cy+(r+(i%5===0?10:5))*Math.sin(a);ticks+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="gauge-tick"/>`;if(i%5===0){const lx=cx+(r+20)*Math.cos(a),ly=cy+(r+20)*Math.sin(a);ticks+=`<text x="${lx}" y="${ly}" class="gauge-tick-label">${i*10}</text>`}}let color;if(sc>=80)color='#b5546a';else if(sc>=60)color='#c47340';else if(sc>=40)color='#8a7e6f';else color='#999';return`<svg class="gauge-svg" viewBox="0 0 240 145"><defs><linearGradient id="gGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#b5a99a"/><stop offset="35%" stop-color="#c47340"/><stop offset="65%" stop-color="#b5546a"/><stop offset="100%" stop-color="#d4708a"/></linearGradient></defs><path d="M ${sx} ${sy} A ${r} ${r} 0 1 1 ${ex} ${ey}" fill="none" stroke="var(--gauge-track)" stroke-width="14" stroke-linecap="round"/><path d="M ${sx} ${sy} A ${r} ${r} 0 1 1 ${ex} ${ey}" fill="none" stroke="url(#gGrad)" stroke-width="14" stroke-linecap="round" opacity="0.25"/>${ticks}<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${color}" stroke-width="3" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="8" fill="${color}"/><circle cx="${cx}" cy="${cy}" r="3" fill="var(--surface)"/><text class="gauge-score-text" x="${cx}" y="${cy-18}">${sc}</text><text class="gauge-max-text" x="${cx}" y="${cy+2}">/ 100</text></svg>`}
+
+    // ── 雷达图 ────────────────────────────────────
+    function renderRadar(dims){const sz=260,cx=sz/2,cy=sz/2,mr=90,n=dims.length,ang=dims.map((_,i)=>Math.PI*2*i/n-Math.PI/2);let grid='';[.33,.66,1].forEach(s=>{grid+=`<polygon class="radar-grid-line" points="${ang.map(a=>`${cx+mr*s*Math.cos(a)},${cy+mr*s*Math.sin(a)}`).join(' ')}"/>`});let axes='';ang.forEach(a=>{axes+=`<line x1="${cx}" y1="${cy}" x2="${cx+mr*Math.cos(a)}" y2="${cy+mr*Math.sin(a)}" class="radar-axis"/>`});const data=dims.map((d,i)=>{const r=mr*d.v/100;return`${cx+r*Math.cos(ang[i])},${cy+r*Math.sin(ang[i])}`}).join(' ');let dots='',labels='';dims.forEach((d,i)=>{const r=mr*d.v/100,x=cx+r*Math.cos(ang[i]),y=cy+r*Math.sin(ang[i]);dots+=`<circle cx="${x}" cy="${y}" r="3" class="radar-dot"/>`;const lx=cx+(mr+16)*Math.cos(ang[i]),ly=cy+(mr+16)*Math.sin(ang[i]);labels+=`<text class="radar-label" x="${lx}" y="${ly}">${d.l}<tspan x="${lx}" dy="12">${d.v}</tspan></text>`});return`<svg class="radar-svg" viewBox="0 0 ${sz} ${sz}">${grid}${axes}<polygon class="radar-shape" points="${data}"/>${dots}${labels}</svg>`}
+
+    // ── 评语 ──────────────────────────────────────
+    function getComment(s){if(s>=80)return'天作之合，你们的夫妻相令人惊叹';if(s>=60)return'很有夫妻相，缘分让你们越来越像';if(s>=40)return'有一些相似之处，爱情会让你们更默契';if(s>=20)return'互补型情侣，差异让彼此更完整';return'完全不同类型，但爱情不需要相似来证明'}
+    function getQuote(s,f,names){const top=Object.entries(f).sort((a,b)=>b[1]-a[1])[0],n=names[top[0]];if(s>=80)return`你们简直是天生一对！最像的是${n}，这种相似度说明你们有着深厚的缘分。研究表明，长期相处的伴侣会越来越像，而你们从一开始就有这么高的相似度，真是令人羡慕。`;if(s>=60)return`你们有着不错的夫妻相，尤其是${n}非常相似。心理学研究发现，夫妻相不仅来自先天的相似，更来自长期的共同生活——相似的表情、饮食习惯、生活方式都会让两个人越来越像。`;if(s>=40)return`你们的${n}有一些相似之处，但整体风格各有特色。其实夫妻相不是爱情的必要条件，很多互补型的情侣反而更加长久。差异正是彼此吸引的原因。`;return`你们是完全不同的类型，但这恰恰是爱情最美的地方。心理学上的"互补吸引"理论指出，差异大的两个人往往能形成更稳固的关系。爱情不在于长得像不像，而在于心贴得近不近。`}
+
+    // ── 重置 ──────────────────────────────────────
+    $('resetBtn').onclick=()=>{img1=img2=null;lmDet1=lmDet2=null;lmVisible1=lmVisible2=false;[box1,box2].forEach((box,i)=>{const ph=i===0?ph1:ph2,img=box.querySelector('img');if(img)img.remove();const ov=box.querySelector('.landmark-overlay');if(ov)ov.remove();const btn=box.querySelector('.landmark-toggle');if(btn)btn.remove();box.classList.remove('has-image');ph.style.display=''});file1.value=file2.value='';results.classList.remove('active');updBtn();window.scrollTo({top:0,behavior:'smooth'})};
+
+    // ── 主题 ──────────────────────────────────────
+    function initTheme(){const s=localStorage.getItem('face_theme'),d=window.matchMedia('(prefers-color-scheme:dark)').matches,on=s?s==='dark':d;if(on)document.documentElement.setAttribute('data-theme','dark');themeToggle.textContent=on?'☀':'☽'}
+    themeToggle.onclick=()=>{const on=document.documentElement.getAttribute('data-theme')==='dark';if(on){document.documentElement.removeAttribute('data-theme');themeToggle.textContent='☽';localStorage.setItem('face_theme','light')}else{document.documentElement.setAttribute('data-theme','dark');themeToggle.textContent='☀';localStorage.setItem('face_theme','dark')}};
+
+    initTheme();
+    window.addEventListener('load',loadModels);
+})();
+</script>
+</body>
+</html>
